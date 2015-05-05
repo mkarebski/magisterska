@@ -1,0 +1,52 @@
+div, button, input { font-family: 'Open Sans', Arial, sans-serif; margin-right: 1px; }
+		body {background-color: #EEFFEE;}
+		button { 
+			height: 50px; 
+			width: 11%; 
+			background-color: #37DEC1;
+			border: none;
+			color: white;
+			font-size: 18px;
+		}
+		input {
+			height: 50px;
+			width: 80%;
+			border: none;
+			font-size: 20px;
+			padding-left: 20;
+		}
+		path {
+			stroke-width: 3px;
+		}
+		#textWidth {
+			position: absolute;
+			top: -100px;
+			left: -100px;
+		}
+		#treeScenario {
+	      width: 100%;
+	      height: 90%;
+	    }
+	    #glassPane {
+		    position: fixed;
+		    color: red;
+		    width: 100%;
+		    height: 100%;
+		    margin: 0;
+		    padding: 0;
+		    top: 0;
+		    left: 0;
+		    opacity: 0.7;
+		    background-color: #DEDEDE;
+		    z-index: 99999;
+		}
+		img[src="ajax-loader.gif"] {
+			position: fixed; top: 50%; left: 50%;
+		}
+		span.ui-spinner {
+			width: 8%;
+			margin: 0;
+			padding: 0;
+			margin-top: -7px;
+			border: none;
+		}
