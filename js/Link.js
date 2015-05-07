@@ -6,7 +6,7 @@ Link = function(id, value, parent, level, children) {
 	this.childrenArray = children;
 	this.childrenLinks = {};
 	this.form = null;
-	
+
 	Link.prototype.addChild = function(link) {
 		this.childrenLinks[link.value] = link;
 	}
@@ -36,7 +36,6 @@ Link = function(id, value, parent, level, children) {
 	
 		return {nodes: nodes, edges: edges};
 	}
-
 	Link.prototype.findNodeByValue = function(value) {
 		if(this.value.toString() == value) {
 			return this;
@@ -49,28 +48,18 @@ Link = function(id, value, parent, level, children) {
 		} 
 		return null;
 	}
-
-	Link.prototype.completeNodes = function(graph) {
-			var exists = false;
-			for(var value in graph.nodes)
-				if(graph.nodes[value].label == this.value)
-					exists = true;
-
-			if(!exists)
-				graph.addNode(this.id, {label : this.value, render : renderFunc});
-
+	Link.prototype.findNodeById = function(id) {
+		if(this.id == id) {
+			return this;
+		} else
+		if(this.id != id) {
 			for(var value1 in this.childrenLinks) {
-				this.childrenLinks[value1].completeNodes(graph);
+				if(this.childrenLinks[value1].id != id) continue;
+				return this.childrenLinks[value1].findNodeById(id);
 			}
-  	}
-  	Link.prototype.completeEdges = function(graph) {
-  		for(var value1 in this.childrenLinks) {
-			graph.addEdge(this.id, this.childrenLinks[value1].id, {directed : true});
-			if (this.value == this.childrenLinks[value1].value) 
-  				graph.addEdge(this.childrenLinks[value1].id, this.id, {directed : true});
-		}
-
-  	}
+		} 
+		return null;
+	}
 	var czyIstnieje = function(nodes, child) {
 		for(var i = 0; i < nodes.length; i++) {
 			if(nodes[i].label.toString() == child.value.toString())
@@ -78,19 +67,4 @@ Link = function(id, value, parent, level, children) {
 		}
 		return -1;
 	}
-	var renderFunc = function(r, n) {			
-			var w = $("#textWidth").text(n.label).width();
-			var h = $("#textWidth").text(n.label).height();
-
-            /* the Raphael set is obligatory, containing all you want to display */
-            var set = r.set().push(
-                /* custom objects go here */
-                //r.rect(n.point[0]-30, n.point[1]-13, 62, 66).attr({"fill": "ffffcf", "stroke-width": 1, r : "9px"})).push(
-                r.rect(n.point[0], n.point[1], w, h).attr({"fill": "ffffcf", "stroke-width": 1, r : "9px"})).push(
-                r.text(n.point[0] + (w/2), n.point[1] + (h/2), n.label).attr({"font-size":"14px"}));
-            /* custom tooltip attached to the set */
-            //set./*tooltip = Raphael.el.tooltip;*/items.forEach(function(el) {el.tooltip(r.set().push(r.rect(0, 0, 30, 30).attr({"fill": "#fec", "stroke-width": 1, r : "9px"})))});
-//            set.tooltip(r.set().push(r.rect(0, 0, 30, 30).attr({"fill": "#fec", "stroke-width": 1, r : "9px"})).hide());
-            return set;
-    };
 }

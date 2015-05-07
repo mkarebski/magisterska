@@ -8,7 +8,23 @@ Tree = function(container) {
 	    },
 	    nodes: {color: "#FFFF5F", shape: "box", fontSize: 10},
 	    edges: {style:"arrow"},
-	    smoothCurves:false
+	    smoothCurves:false,
+        groups: {
+          withoutForm: {
+            shape: 'box',
+            color: {
+              border: 'black',
+              background: '#FFFF5F',
+            }
+          },
+          withForm: {
+            shape: 'box',
+            color: {
+              border: 'black',
+              background: '#C9FFC7',
+            }
+          }
+        }
 	}
 	this.network = null;
 }
@@ -18,22 +34,25 @@ Tree.prototype.createNetwork = function() {
 
 Tree.prototype.refresh = function() {
 	this.network = this.createNetwork();
-    this.network.on('select', function(properties) {
-        //console.log(properties);
-    });
 }
 Tree.prototype.addNode = function(n) {
+    //console.log(n);
+    //console.log(n.form);
 	var found = false;
-    /*if (nodes._data != undefined && nodes._data != null) 
-        for(var i in nodes._data)
-            if(nodes._data[i].label == r.value) 
-                found = true;*/
+    /* 
+    if (this.nodes._data != undefined && this.nodes._data != null) 
+        for(var i in this.nodes._data)
+            if(this.nodes._data[i].label == n.value) 
+                found = true;
+    */
     try {
         if(!found) {
+            var group1 = (n.form != null) ? 'withForm' : 'withoutForm';
             this.nodes.add({
                 id: n.id,
                 level: n.level,
-                label: n.value.toString()
+                label: n.value.toString(),
+                group: group1
             });
         }
     } catch(err) {
