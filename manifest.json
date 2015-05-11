@@ -3,7 +3,7 @@
   "description": "master of science project",
   "version": "1.0",
   "manifest_version": 2,
-  "permissions": ["alarms", "tabs", "bookmarks", "storage", "*://*/*", "https://query.yahooapis.com/*"],
+  "permissions": ["alarms", "tabs", "bookmarks", "storage", "*://*/*"],
   "background": {
     "scripts": ["js/background.js"],
     "persistent": false
@@ -21,5 +21,5 @@
       "suggested_key": { "default": "Ctrl+Shift+K" }
     }
   },
-  "content_security_policy": "script-src 'self' https://query.yahooapis.com/; object-src 'self'"
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
 }

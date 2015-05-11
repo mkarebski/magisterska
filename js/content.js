@@ -1,59 +1,4 @@
-jQuery.ajax = (function(_ajax){
 
-    var protocol = location.protocol,
-        hostname = location.hostname,
-        exRegex = RegExp(protocol + '//' + hostname),
-        //YQL = 'http' + (/^https/.test(protocol)?'s':'') + '://query.yahooapis.com/v1/public/yql?callback=?',
-        YQL = 'https://query.yahooapis.com/v1/public/yql?callback=?',
-        query = 'select * from html where url="{URL}" and xpath="\/\/a | \/\/form"';
-        function isExternal(url) {
-            return !exRegex.test(url) && /:\/\//.test(url);
-        }
-
-    return function(o) {
-        var url = o.url;
-
-        if ( /get/i.test(o.type) && !/json/i.test(o.dataType) && isExternal(url) ) {
-
-            // Manipulate options so that JSONP-x request is made to YQL
-
-            o.url = YQL;
-            o.dataType = 'jsonp';
-            o.async = false;
-            o.data = {
-                q: query.replace(
-                    '{URL}',
-                    url + (o.data ?
-                        (/\?/.test(url) ? '&' : '?') + jQuery.param(o.data)
-                    : '')
-                ),
-                format: 'xml'
-            };
-
-            // Since it's a JSONP request
-            // complete === success
-            if (!o.success && o.complete) {
-                o.success = o.complete;
-                delete o.complete;
-            }
-
-            o.success = (function(_success){
-                return function(data) {
-                    if (_success) {
-                        // Fake XHR callback.
-                        _success.call(this, {
-                            responseText: data.results
-                        }, 'success');
-                    }
-
-                };
-            })(o.success);
-
-        }
-        return _ajax.apply(this, arguments);
-
-    };
-})(jQuery.ajax);
 
 $(function() {
     var root = null;
@@ -70,35 +15,38 @@ $(function() {
     $("#setUrl").click(function() {
         tree = new Tree('treeScenario');
 
-        baseUrl = "http://www.mikolajkarebski.cba.pl";
-
-        var head = new Link(-1, "", null, -1, null);
-        root = new Link(0, baseUrl, head, 0, null);
-        head.addChild(root);
+        //baseUrl = "http://www.mikolajkarebski.cba.pl";
+        baseUrl = "http://localhost/www/wordpress";
+        root = new Link(0, baseUrl, null, 0, null);
         maxDepthLevel = spinner.spinner("value");
 
         tree.addNode(root);
-        //createChildrenNodes(head.childrenLinks);
         createChildrenNodes(root);
     });
 
   function createChildrenNodes(r) {
     var r1 = null;
     $.ajax({
-        url: r.value,
+        url: "http://localhost/www/ba-simple-proxy.php?url="+r.value,
         type: 'GET',
+        dataType: "text",
         beforeSend: function() {
             $("#glassPane").fadeIn("fast");
             activeAjaxs += 1;
         },
     }).done(function(res, textStatus, jqXHR) { 
+            res = res.replace(res.substring(0, res.indexOf("{")),"");
+            result = JSON.parse(res);
+            //console.log(result.contents);
             activeAjaxs -= 1;
-            var htmlString = "";
+            //var htmlString = "";
             var htmlObject = null;
-            for(var i = 0; i < res.results.length; i++) htmlString += res.results[i];
-            htmlObject = $("<div />").append(htmlString);
+            //for(var i = 0; i < res.results.length; i++) htmlString += res.results[i];
+            //htmlObject = $("<div />").append(htmlString);
+            htmlObject = $("<div />").append(result.contents);
 
             r.childrenArray = htmlObject.find("a");
+            //console.log(r.childrenArray);
             r.form = htmlObject.find("form");
 
             if(r.childrenArray != null && r.childrenArray.length > 0 && r.level < maxDepthLevel) {
@@ -140,12 +88,15 @@ $(function() {
             }
             tree.refresh();
             tree.network.on('select', function(properties) {
+                console.log(properties.nodes[0]);
+                console.log(nodesWithForms);
                 $("#forms").empty();
                 for(var i = 0; i < nodesWithForms.length; i++) 
                     if (nodesWithForms[i].id == properties.nodes[0]) 
                         $("#forms").html(nodesWithForms[i].form);
             });
-        $("#glassPane").fadeOut("fast");
+            console.log(root);
+            $("#glassPane").fadeOut("fast");
         }
     });
 }
@@ -184,7 +135,13 @@ $(function() {
     function repairURL(url, url1) {
         if(url.indexOf("chrome-extension://") > -1) {
             var result = url.match(/^chrome-extension:\/\/([a-zA-Z]*)/);
-            var parentDomain = url1.match(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})?/)[0];
+            console.log(url1);
+            var parentDomain = null;
+            if(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})?/.test(url1)) { //regular url like 'www.mikolajkarebski.cba.pl'
+                parentDomain = url1.match()[0];
+            } else {    // domain = localhost
+                parentDomain = url1;
+            } 
             var subsite = url.replace("chrome-extension://"+result[1], "");
             var url2 = url.replace("chrome-extension://"+result[1], url1);
             if(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})(\/[a-zA-Z0-9]*){2,}?/.test(url2)) {
