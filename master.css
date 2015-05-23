@@ -1,4 +1,9 @@
 div, button, input { font-family: 'Open Sans', Arial, sans-serif; margin-right: 1px; }
+		
+		div {
+			float: left;
+		}
+
 		body {background-color: #EEFFEE;}
 		button { 
 			height: 50px; 
@@ -25,16 +30,20 @@ div, button, input { font-family: 'Open Sans', Arial, sans-serif; margin-right: 
 		}
 		#treeScenario {
 	      width: 70%;
-	      height: 93%;
+	      /*height: 93%;*/
+	      height: 450px;
 	      border: 1px solid #37DEC1;
-;
 	      float: left;
+	    }
+	    canvas {
+	    	height: 93%;
 	    }
 	    #forms {
 	      float: right;
 	      width: 29.5%;
-	      height: 93%;
+	      height: 450px;
 	      border: 1px solid #37DEC1;
+	      overflow: scroll;
 	    }
 	    #glassPane {
 		    position: fixed;
@@ -58,4 +67,27 @@ div, button, input { font-family: 'Open Sans', Arial, sans-serif; margin-right: 
 			padding: 0;
 			margin-top: -7px;
 			border: none;
+		}
+
+		ul {
+			float: left;
+			width: 500px;
+		}
+
+		li {
+			margin-top: 5px;
+			padding-top: 2px;
+			padding-bottom: 2px;
+			padding-left: 5px;
+			border: 1px solid #37DEC1;
+		}
+
+		.error {
+			background-color: red;
+			color: white;
+		}
+
+		.noerror {
+			background-color: green;
+			color: white;
 		}

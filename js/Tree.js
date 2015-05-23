@@ -36,25 +36,13 @@ Tree.prototype.refresh = function() {
 	this.network = this.createNetwork();
 }
 Tree.prototype.addNode = function(n) {
-    //console.log(n);
-    //console.log(n.form);
-	var found = false;
-    /* 
-    if (this.nodes._data != undefined && this.nodes._data != null) 
-        for(var i in this.nodes._data)
-            if(this.nodes._data[i].label == n.value) 
-                found = true;
-    */
     try {
-        if(!found) {
-            var group1 = (n.form != null) ? 'withForm' : 'withoutForm';
-            this.nodes.add({
-                id: n.id,
-                level: n.level,
-                label: n.value.toString(),
-                group: group1
-            });
-        }
+        this.nodes.add({
+            id: n.id,
+            level: n.level,
+            label: '('+n.id+') '+n.value.toString(),
+            group: 'withoutForm'
+        });
     } catch(err) {
     	console.log(err);
     }

@@ -37,7 +37,7 @@ Link = function(id, value, parent, level, children) {
 		return {nodes: nodes, edges: edges};
 	}
 	Link.prototype.findNodeByValue = function(value) {
-		if(this.value.toString() == value) {
+		/*if(this.value.toString() == value) {
 			return this;
 		} else
 		if(this.value.toString() != value) {
@@ -47,18 +47,35 @@ Link = function(id, value, parent, level, children) {
 			}
 		} 
 		return null;
+		*/
+		var tmpNode = null;
+		if(this.value == value) {
+			tmpNode = this;
+			return tmpNode;
+		} else {
+			if(this.childrenArray != null) {
+				for(var value1 in this.childrenLinks) {
+					tmpNode = this.childrenLinks[value1].findNodeByValue(value);
+					if(tmpNode != null) 
+						return tmpNode;				
+				}
+			}
+		}
 	}
 	Link.prototype.findNodeById = function(id) {
+		var tmpNode = null;
 		if(this.id == id) {
-			return this;
-		} else
-		if(this.id != id) {
-			for(var value1 in this.childrenLinks) {
-				if(this.childrenLinks[value1].id != id) continue;
-				return this.childrenLinks[value1].findNodeById(id);
+			tmpNode = this;
+			return tmpNode;
+		} else {
+			if(this.childrenArray != null) {
+				for(var value1 in this.childrenLinks) {
+					tmpNode = this.childrenLinks[value1].findNodeById(id);
+					if(tmpNode != null) 
+						return tmpNode;				
+				}
 			}
-		} 
-		return null;
+		}
 	}
 	var czyIstnieje = function(nodes, child) {
 		for(var i = 0; i < nodes.length; i++) {

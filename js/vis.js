@@ -3911,7 +3911,7 @@ return /******/ (function(modules) { // webpackBootstrap
    * Resize the canvas to the current size of the frame
    */
   Graph3d.prototype._resizeCanvas = function() {
-    this.frame.canvas.style.width = '100%';
+    //this.frame.canvas.style.width = '100%';
     this.frame.canvas.style.height = '100%';
 
     this.frame.canvas.width = this.frame.canvas.clientWidth;

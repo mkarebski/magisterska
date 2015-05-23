@@ -1,107 +1,155 @@
-
-
 $(function() {
-    var root = null;
-    var idProvider = 1;
-    var passageIdProvider = 1;
-    var maxDepthLevel = null;
-    var spinner = createSpinner();
-    var baseUrl = null;
-    var tree = null;
-    var scenarios = [];
-    var activeAjaxs = 0;
-    var nodesWithForms = [];
+	var root = null;
+	var idProvider = 1;
+	var passageIdProvider = 1;
+	var maxDepthLevel = null;
+	var spinner = createSpinner();
+	var baseUrl = null;
+	var tree = null;
+	var scenarios = [];
+	var activeAjaxs = 0;
+	var nodesWithForms = [];
+    var lastLevelChildren = [];
 
-    $("#setUrl").click(function() {
-        tree = new Tree('treeScenario');
+	$("#setUrl").click(function() {
+		idProvider = 1;
+        lastLevelChildren = [];
 
-        //baseUrl = "http://www.mikolajkarebski.cba.pl";
-        baseUrl = "http://localhost/www/wordpress";
-        root = new Link(0, baseUrl, null, 0, null);
-        maxDepthLevel = spinner.spinner("value");
+        $("#scenarios").empty();
+		tree = new Tree('treeScenario');
+		baseUrl = "localhost/www/portfolio";
+		//baseUrl = $("input[name=url]").val();
+		root = new Link(0, baseUrl, null, 0, null);
+		maxDepthLevel = spinner.spinner("value");
 
-        tree.addNode(root);
-        createChildrenNodes(root);
-    });
+		tree.addNode(root);
+		createChildrenNodes(root);
+	});
 
-  function createChildrenNodes(r) {
-    var r1 = null;
-    $.ajax({
-        url: "http://localhost/www/ba-simple-proxy.php?url="+r.value,
-        type: 'GET',
-        dataType: "text",
-        beforeSend: function() {
-            $("#glassPane").fadeIn("fast");
-            activeAjaxs += 1;
-        },
-    }).done(function(res, textStatus, jqXHR) { 
-            res = res.replace(res.substring(0, res.indexOf("{")),"");
-            result = JSON.parse(res);
-            //console.log(result.contents);
-            activeAjaxs -= 1;
-            //var htmlString = "";
-            var htmlObject = null;
-            //for(var i = 0; i < res.results.length; i++) htmlString += res.results[i];
-            //htmlObject = $("<div />").append(htmlString);
-            htmlObject = $("<div />").append(result.contents);
+    function createChildrenNodes(r) {
+	var r1 = null;
+		$.ajax({
+			url: "http://localhost/www/ba-simple-proxy.php?url="+r.value,
+			type: 'GET',
+			dataType: "text",
+			beforeSend: function() {
+				$("#glassPane").fadeIn("fast");
+				activeAjaxs += 1;
+			},
+		}).done(function(res, textStatus, jqXHR) { 
+				res = res.replace(res.substring(0, res.indexOf("{")),"");
+				result = JSON.parse(res);
+				activeAjaxs -= 1;
+				//console.log(activeAjaxs);
+				var htmlObject = null;
+				htmlObject = $("<span></span>").append(result.contents);
+				htmlObject.find("link").remove();
 
-            r.childrenArray = htmlObject.find("a");
-            //console.log(r.childrenArray);
-            r.form = htmlObject.find("form");
+				if(r.level != maxDepthLevel)
+					r.childrenArray = htmlObject.find("a");
 
-            if(r.childrenArray != null && r.childrenArray.length > 0 && r.level < maxDepthLevel) {
-                for(var i = 0; i < r.childrenArray.length; i++) {
-                    var el = r.childrenArray[i];
-                    var elh = el.href;
-                    if(elh.indexOf("mailto:") > -1) continue;
-                    elh = convertURL(elh, r.value);
+				r.form = htmlObject.find("form");
 
-                    r1 = new Link(idProvider++, elh, r, r.level+1, null);
+				if(r.childrenArray != null && r.childrenArray.length > 0 && r.level < maxDepthLevel) {
+					for(var i = 0; i < r.childrenArray.length; i++) {
+						var el = r.childrenArray[i];
+						var elh = el.href;
 
-                    r.addChild(r1);
-                    var param = getParameter(r1);
-                    if(r.value != r1.value) {
-                        tree.addNode(r1);
-                        tree.addEdge(r, r1, param);
-                        createChildrenNodes(r1);
-                    } else {
-                        tree.addEdge(r, r, param);
+						if(/mailto:/.test(elh)) continue;
+						if(/.(zip|exe|pdf)$/.test(elh)) continue;
+						elh = convertURL(elh, r.value);
+						if(r.findNodeByValue(elh) != null/* && r.value != elh*/) continue; // TUTAJ COS TRZEBA WYMYSLIC!!!!!!!!!!!!!!
+
+						r1 = new Link(idProvider++, elh, r, r.level+1, null);
+						r.addChild(r1);
+
+                        if(r1.level == maxDepthLevel)
+                            lastLevelChildren.push(r1);
+
+						var param = getParameter(r1);
+						if(r.value != r1.value) {
+							tree.addNode(r1);
+							//if(r.parent != null && r.parent.value == r1.value) 
+								//tree.addEdge(r, r.parent, param);
+							//else 
+								tree.addEdge(r, r1, param);
+							createChildrenNodes(r1);
+						} else {
+							tree.addEdge(r, r, param);
+						}
+					}
+					tree.refresh();
+				}
+		}).fail(function(xmlhttp, status, error) { 
+				alert("wystapil blad! sprawdz konsole");
+				console.log(xmlhttp);
+				console.log(status);
+				console.log(error);
+				$("#glassPane").fadeOut("fast");
+		}).always(function(xmlhttp, status, error) { 
+			if(activeAjaxs == 0) {
+				for(var node in tree.nodes._data) {
+					var n = tree.nodes._data[node];
+					var node = root.findNodeById(n.id);
+					if(node != undefined && node != null && node.form!= null && node.form.length > 0) {
+						n.group = 'withForm';
+						nodesWithForms.push(node);
+					}
+				}
+				tree.refresh();
+
+                for(var i = 0; i < lastLevelChildren.length; i++) {
+                    var tmpNode = lastLevelChildren[i];
+                    var scenario = tmpNode.id ;
+                    while(tmpNode.parent != null) {
+                        scenario = scenario + " > " + tmpNode.parent.id;
+                        tmpNode = tmpNode.parent;
                     }
+                    scenarios.push(swap(scenario));
+                    var li = $("#scenarios").append("<li>"+swap(scenario)+"</li>");
+                    testScenario(swap(scenario));
                 }
-                tree.refresh();
-            }
-    }).fail(function(xmlhttp, status, error) { 
-            alert("wystapil blad! sprawdz konsole");
-            console.log(xmlhttp);
-            console.log(status);
-            console.log(error);
-            $("#glassPane").fadeOut("fast");
-    }).always(function(xmlhttp, status, error) { 
-        if(activeAjaxs == 0) {
-            for(var node in tree.nodes._data) {
-                var n = tree.nodes._data[node];
-                var node = root.findNodeById(n.id);
-                if(node != undefined && node != null && node.form.length > 0) {
-                    n.group = 'withForm';
-                    nodesWithForms.push(node);
-                }
-            }
-            tree.refresh();
-            tree.network.on('select', function(properties) {
-                console.log(properties.nodes[0]);
-                console.log(nodesWithForms);
-                $("#forms").empty();
-                for(var i = 0; i < nodesWithForms.length; i++) 
-                    if (nodesWithForms[i].id == properties.nodes[0]) 
-                        $("#forms").html(nodesWithForms[i].form);
-            });
-            console.log(root);
-            $("#glassPane").fadeOut("fast");
-        }
-    });
-}
 
-    function createSpinner() {
+				tree.network.on('select', function(properties) {
+					$("#forms").empty();
+					for(var i = 0; i < nodesWithForms.length; i++) 
+						if (nodesWithForms[i].id == properties.nodes[0]) 
+							$("#forms").html(nodesWithForms[i].form);
+				});
+				$("#glassPane").fadeOut("fast");
+			}
+		});
+    }   
+
+    function testScenario(scenario) {
+        var nodes = scenario.split(" > ");
+        var requests = [];
+        for(var i = 0; i < nodes.length; i++) {
+            var node = root.findNodeById(nodes[i]);
+            requests.push($.ajax({
+                url: "http://localhost/www/ba-simple-proxy.php?url="+node.value,
+                type: 'GET',
+                dataType: "text",
+            }));
+        }
+
+        $.when(requests)
+        .done(function() {
+            $("li:contains('"+scenario.toString()+"')").addClass("noerror");
+        })
+        .fail(function() {
+            $("li:contains('"+scenario.toString()+"')").addClass("error");  
+        });
+    }
+
+    $(document).on('click', 'li', function() { 
+        $("#glassPane").fadeIn("fast");
+        var decodedValue = $('<div />').html(this.innerHTML).text()
+        testScenario(decodedValue);
+        $("#glassPane").fadeOut("fast");
+    });
+
+        function createSpinner() {
          var spinnerContainer = $("#depthLevel");
          var spinner =  spinnerContainer.spinner({min: 1}).blur(function () {
                 var value1 = spinnerContainer.val();
@@ -111,15 +159,11 @@ $(function() {
          return spinner;
     }
 
+    function swap(s) {return s.split(" > ").reverse().join(" > ");}
+
     function getParameter(n1) {
         // TODO: rozdzielenie kilku parametrow zeby byly jeden pod drugim
         return (n1.value.indexOf("?") > 0) ? n1.value.substring(n1.value.indexOf("?")+1) : "";
-    }
-
-    function parseResult(res) {
-            var htmlString = "";
-            for(var i = 0; i < res.length; i++) htmlString += res[i];
-            return $("<div />").append(htmlString);
     }
 
     function convertURL(elh, parentValue) {
@@ -135,13 +179,17 @@ $(function() {
     function repairURL(url, url1) {
         if(url.indexOf("chrome-extension://") > -1) {
             var result = url.match(/^chrome-extension:\/\/([a-zA-Z]*)/);
-            console.log(url1);
             var parentDomain = null;
             if(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})?/.test(url1)) { //regular url like 'www.mikolajkarebski.cba.pl'
-                parentDomain = url1.match()[0];
+                parentDomain = url1.match(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})?/)[0];
             } else {    // domain = localhost
-                parentDomain = url1;
-            } 
+                var regex1 = /\/[a-zA-Z]*\.[a-zA-Z]*/;
+                if(regex1.test(url1)) {
+                    parentDomain = url1.replace(url1.match(regex1)[0],"");  
+                } else {
+                    parentDomain = url1;
+                }
+            }   
             var subsite = url.replace("chrome-extension://"+result[1], "");
             var url2 = url.replace("chrome-extension://"+result[1], url1);
             if(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})(\/[a-zA-Z0-9]*){2,}?/.test(url2)) {
