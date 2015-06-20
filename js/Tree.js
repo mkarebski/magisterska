@@ -23,6 +23,13 @@ Tree = function(container) {
               border: 'black',
               background: '#C9FFC7',
             }
+          },
+          invalid: {
+            shape: 'box',
+            color: {
+              border: 'black',
+              background: '#FF0000',
+            }
           }
         }
 	}
@@ -35,13 +42,15 @@ Tree.prototype.createNetwork = function() {
 Tree.prototype.refresh = function() {
 	this.network = this.createNetwork();
 }
-Tree.prototype.addNode = function(n) {
+Tree.prototype.addNode = function(n, group) {
+    var tmpGroup = group;
+    if(tmpGroup == undefined) tmpGroup = 'withoutForm';
     try {
         this.nodes.add({
             id: n.id,
             level: n.level,
             label: '('+n.id+') '+n.value.toString(),
-            group: 'withoutForm'
+            group: tmpGroup
         });
     } catch(err) {
     	console.log(err);

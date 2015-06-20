@@ -3,7 +3,7 @@
   "description": "master of science project",
   "version": "1.0",
   "manifest_version": 2,
-  "permissions": ["alarms", "tabs", "bookmarks", "storage", "*://*/*"],
+  "permissions": [/*"alarms", "tabs", "bookmarks", "storage",*/ "*://*/*"],
   "background": {
     "scripts": ["js/background.js"],
     "persistent": false

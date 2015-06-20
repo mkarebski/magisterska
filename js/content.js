@@ -17,7 +17,11 @@ $(function() {
 
         $("#scenarios").empty();
 		tree = new Tree('treeScenario');
-		baseUrl = "localhost/www/portfolio";
+
+        // TODO BLEDY O NIEPOPRAWNOSCI DOKUMENTU XML
+        baseUrl = "localhost/www/aplikacja2";
+		//baseUrl = "localhost/www/wordpress";
+        //baseUrl = "localhost/www/portfolio";
 		//baseUrl = $("input[name=url]").val();
 		root = new Link(0, baseUrl, null, 0, null);
 		maxDepthLevel = spinner.spinner("value");
@@ -27,7 +31,7 @@ $(function() {
 	});
 
     function createChildrenNodes(r) {
-	var r1 = null;
+        var r1 = null;
 		$.ajax({
 			url: "http://localhost/www/ba-simple-proxy.php?url="+r.value,
 			type: 'GET',
@@ -39,75 +43,91 @@ $(function() {
 		}).done(function(res, textStatus, jqXHR) { 
 				res = res.replace(res.substring(0, res.indexOf("{")),"");
 				result = JSON.parse(res);
+                
 				activeAjaxs -= 1;
-				//console.log(activeAjaxs);
-				var htmlObject = null;
-				htmlObject = $("<span></span>").append(result.contents);
-				htmlObject.find("link").remove();
 
-				if(r.level != maxDepthLevel)
-					r.childrenArray = htmlObject.find("a");
+                if(result.status.http_code != 404) {
+                    var htmlObject = null;
+                    htmlObject = $("<span></span>").append(result.contents);
+                    htmlObject.find("link").remove();
 
-				r.form = htmlObject.find("form");
+                    if(r.level != maxDepthLevel)
+                        r.childrenArray = htmlObject.find("a");
 
-				if(r.childrenArray != null && r.childrenArray.length > 0 && r.level < maxDepthLevel) {
-					for(var i = 0; i < r.childrenArray.length; i++) {
-						var el = r.childrenArray[i];
-						var elh = el.href;
+                    r.form = htmlObject.find("form");
 
-						if(/mailto:/.test(elh)) continue;
-						if(/.(zip|exe|pdf)$/.test(elh)) continue;
-						elh = convertURL(elh, r.value);
-						if(r.findNodeByValue(elh) != null/* && r.value != elh*/) continue; // TUTAJ COS TRZEBA WYMYSLIC!!!!!!!!!!!!!!
+                    if(r.childrenArray != null && r.childrenArray.length > 0 && r.level < maxDepthLevel) {
+                        for(var i = 0; i < r.childrenArray.length; i++) {
+                            var el = r.childrenArray[i];
+                            var elh = el.href;
 
-						r1 = new Link(idProvider++, elh, r, r.level+1, null);
-						r.addChild(r1);
+                            if(/mailto:/.test(elh)) continue;
+                            if(/.(zip|exe|pdf)$/.test(elh)) continue;
+                            elh = convertURL(elh, r.value);
+                            //if(r.findNodeByValue(elh) != null/* && r.value != elh*/) continue; // TUTAJ COS TRZEBA WYMYSLIC!!!!!!!!!!!!!!
 
-                        if(r1.level == maxDepthLevel)
-                            lastLevelChildren.push(r1);
+                            r1 = new Link(idProvider++, elh, r, r.level+1, null);
+                            r.addChild(r1);
 
-						var param = getParameter(r1);
-						if(r.value != r1.value) {
-							tree.addNode(r1);
-							//if(r.parent != null && r.parent.value == r1.value) 
-								//tree.addEdge(r, r.parent, param);
-							//else 
-								tree.addEdge(r, r1, param);
-							createChildrenNodes(r1);
-						} else {
-							tree.addEdge(r, r, param);
-						}
-					}
-					tree.refresh();
-				}
+                            if(r1.level == maxDepthLevel)
+                                lastLevelChildren.push(r1);
+
+                            var param = getParameter(r1);
+                            if(r.value != r1.value) {
+                                tree.addNode(r1);
+                                //if(r.parent != null && r.parent.value == r1.value) 
+                                    //tree.addEdge(r, r.parent, param);
+                                //else 
+                                tree.addEdge(r, r1, param);
+                                createChildrenNodes(r1);
+                            } else {
+                                tree.addEdge(r, r, param);
+                            }
+                        }
+                        tree.refresh();
+                    }
+                } else {
+                    for(var node1 in tree.nodes._data) {
+                        var n = tree.nodes._data[node1];
+                        if(r.id == n.id) {
+                            n.group = 'invalid';
+                            r.group = 'invalid';
+                        }
+                    }
+                }
 		}).fail(function(xmlhttp, status, error) { 
-				alert("wystapil blad! sprawdz konsole");
+                activeAjaxs -= 1;
+				alert("wystapil blad serwera proxy! sprawdz konsole");
 				console.log(xmlhttp);
 				console.log(status);
 				console.log(error);
 				$("#glassPane").fadeOut("fast");
 		}).always(function(xmlhttp, status, error) { 
 			if(activeAjaxs == 0) {
-				for(var node in tree.nodes._data) {
-					var n = tree.nodes._data[node];
+				for(var node1 in tree.nodes._data) {
+					var n = tree.nodes._data[node1];
 					var node = root.findNodeById(n.id);
 					if(node != undefined && node != null && node.form!= null && node.form.length > 0) {
 						n.group = 'withForm';
+                        node.group = 'withForm';
 						nodesWithForms.push(node);
 					}
 				}
 				tree.refresh();
 
-                for(var i = 0; i < lastLevelChildren.length; i++) {
-                    var tmpNode = lastLevelChildren[i];
-                    var scenario = tmpNode.id ;
-                    while(tmpNode.parent != null) {
-                        scenario = scenario + " > " + tmpNode.parent.id;
-                        tmpNode = tmpNode.parent;
+                var paths = [];
+                root.makePaths(paths);
+
+                for(var i = 0; i < paths.length; i++) {
+                    paths[i] = paths[i].reverse();
+                    var reversedPathLabel = returnPath(paths[i]);
+                    var ul = $("#scenarios").append("<li>"+reversedPathLabel+"</li>");
+                    var li = $("li:contains('"+reversedPathLabel+"')");
+                    if(isIncorrect(paths[i])) {
+                        li.addClass("error");
+                    } else {
+                        li.addClass("noerror");
                     }
-                    scenarios.push(swap(scenario));
-                    var li = $("#scenarios").append("<li>"+swap(scenario)+"</li>");
-                    testScenario(swap(scenario));
                 }
 
 				tree.network.on('select', function(properties) {
@@ -121,35 +141,61 @@ $(function() {
 		});
     }   
 
-    function testScenario(scenario) {
-        var nodes = scenario.split(" > ");
+    function isIncorrect(path) {
+        console.log(path);
+        for(var i = 0; i < path.length; i++) 
+            if(path[i].group == 'invalid') 
+               return true;
+        return false;
+    }
+
+    function testScenario(nodes) {
         var requests = [];
         for(var i = 0; i < nodes.length; i++) {
-            var node = root.findNodeById(nodes[i]);
+            //wordpress app Uncaught TypeError: Cannot read property 'value' of undefined line 152
+
             requests.push($.ajax({
-                url: "http://localhost/www/ba-simple-proxy.php?url="+node.value,
+                url: "http://localhost/www/ba-simple-proxy.php?url="+nodes[i].value,
                 type: 'GET',
                 dataType: "text",
             }));
         }
 
         $.when(requests)
-        .done(function() {
-            $("li:contains('"+scenario.toString()+"')").addClass("noerror");
+        .done(function(res, textStatus, jqXHR) {
+            var li = $("li:contains('"+returnPath(nodes)+"')");
+            var r = null;
+            for(var i = 0; i < res.length; i++) {
+                console.log(res);
+                /*r = res[i].responseText.replace(res[i].responseText.substring(0, res[i].responseText.indexOf("{")),"");
+                result = JSON.parse(r);
+
+                if(r.status == 200) {
+                    li.addClass("noerror");
+                } else {
+                    li.addClass("error"); 
+                }*/
+            }
         })
-        .fail(function() {
-            $("li:contains('"+scenario.toString()+"')").addClass("error");  
+        .fail(function(xmlhttp, status, error) {
+            alert("wystapil blad serwera proxy! sprawdz konsole");
+            console.log(xmlhttp);
+            console.log(status);
+            console.log(error);
+            $("#glassPane").fadeOut("fast");
         });
     }
 
     $(document).on('click', 'li', function() { 
         $("#glassPane").fadeIn("fast");
-        var decodedValue = $('<div />').html(this.innerHTML).text()
-        testScenario(decodedValue);
+        var decodedValue = $('<div />').html(this.innerHTML).text();
+        var array = [];
+        decodedValue.split(" > ").
+        testScenario(array);
         $("#glassPane").fadeOut("fast");
     });
 
-        function createSpinner() {
+    function createSpinner() {
          var spinnerContainer = $("#depthLevel");
          var spinner =  spinnerContainer.spinner({min: 1}).blur(function () {
                 var value1 = spinnerContainer.val();
@@ -159,7 +205,14 @@ $(function() {
          return spinner;
     }
 
-    function swap(s) {return s.split(" > ").reverse().join(" > ");}
+    function returnPath(s) {
+        var str = "";
+        for(var i = 0; i < s.length-1; i++) {
+            str += s[i].id + " > ";
+        }
+        str += s[s.length-1].id;
+        return str;
+    }
 
     function getParameter(n1) {
         // TODO: rozdzielenie kilku parametrow zeby byly jeden pod drugim
