@@ -8,7 +8,7 @@ Tree = function(container) {
 	    },
 	    nodes: {color: "#FFFF5F", shape: "box", fontSize: 10},
 	    edges: {style:"arrow"},
-	    smoothCurves:false,
+	    smoothCurves:true,
         groups: {
           withoutForm: {
             shape: 'box',
@@ -29,6 +29,13 @@ Tree = function(container) {
             color: {
               border: 'black',
               background: '#FF0000',
+            }
+          },
+          hover: {
+            shape: 'box',
+            color: {
+              border: 'black',
+              background: '#0000FF',
             }
           }
         }

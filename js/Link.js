@@ -7,20 +7,34 @@ Link = function(id, value, parent, level, children) {
 	this.childrenLinks = {};
 	this.form = null;
 	this.group="withoutForm";
+	this.loop = null;
 
 	Link.prototype.addChild = function(link) {
 		this.childrenLinks[link.value] = link;
 	}
 	Link.prototype.makePaths = function(paths) {
+
+		function returnPath(s) {
+	        var str = "";
+	        for(var i = 0; i < s.length-1; i++) {
+	            str += s[i].id + " > ";
+	        }
+	        str += s[s.length-1].id;
+	        return str;
+	    }
+
 		if(this.childrenArray == null || this.childrenArray.length == 0) {
-			var tmpNode = this;
-			var tmpPath = [];
-			while(tmpNode.parent != null) {
-                tmpPath.push(tmpNode);
-                tmpNode = tmpNode.parent;
-            }
-            tmpPath.push(tmpNode);
-			paths.push(tmpPath);
+				var tmpNode = this;
+				var tmpPath = [];
+				while(tmpNode.parent != null) {
+	                tmpPath.push(tmpNode);
+	                tmpNode = tmpNode.parent;
+	            }
+	            tmpPath.push(tmpNode);
+	            if(this.loop != null) 
+	            	tmpPath.shift();
+	            tmpPath = tmpPath.reverse();
+				paths[returnPath(tmpPath)] = tmpPath;
 		} else {
 			for(var value1 in this.childrenLinks) {
 				this.childrenLinks[value1].makePaths(paths);

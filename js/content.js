@@ -9,17 +9,18 @@ $(function() {
 	var scenarios = [];
 	var activeAjaxs = 0;
 	var nodesWithForms = [];
-    var lastLevelChildren = [];
+    var paths = {};
 
 	$("#setUrl").click(function() {
 		idProvider = 1;
-        lastLevelChildren = [];
+        paths = {};
 
         $("#scenarios").empty();
 		tree = new Tree('treeScenario');
 
         // TODO BLEDY O NIEPOPRAWNOSCI DOKUMENTU XML
-        baseUrl = "localhost/www/aplikacja2";
+        baseUrl = "localhost/www/aplikacja3";
+        //baseUrl = "localhost/www/aplikacja2";
 		//baseUrl = "localhost/www/wordpress";
         //baseUrl = "localhost/www/portfolio";
 		//baseUrl = $("input[name=url]").val();
@@ -45,7 +46,6 @@ $(function() {
 				result = JSON.parse(res);
                 
 				activeAjaxs -= 1;
-
                 if(result.status.http_code != 404) {
                     var htmlObject = null;
                     htmlObject = $("<span></span>").append(result.contents);
@@ -64,15 +64,28 @@ $(function() {
                             if(/mailto:/.test(elh)) continue;
                             if(/.(zip|exe|pdf)$/.test(elh)) continue;
                             elh = convertURL(elh, r.value);
-                            //if(r.findNodeByValue(elh) != null/* && r.value != elh*/) continue; // TUTAJ COS TRZEBA WYMYSLIC!!!!!!!!!!!!!!
-
+                            
                             r1 = new Link(idProvider++, elh, r, r.level+1, null);
                             r.addChild(r1);
 
-                            if(r1.level == maxDepthLevel)
-                                lastLevelChildren.push(r1);
-
                             var param = getParameter(r1);
+
+                            var tmpNode = r1;
+                            while(tmpNode.parent != null) {
+                                tmpNode = tmpNode.parent;
+                                if (tmpNode.value == elh) 
+                                    r1.loop = tmpNode;
+                            }
+
+                            if(r1.loop != null) {
+                                tree.addEdge(r1.parent, r1.loop, param);
+                                //console.log("A");
+                                console.log(r1);
+
+                                continue;
+                                //console.log("B")
+                            }
+
                             if(r.value != r1.value) {
                                 tree.addNode(r1);
                                 //if(r.parent != null && r.parent.value == r1.value) 
@@ -115,11 +128,9 @@ $(function() {
 				}
 				tree.refresh();
 
-                var paths = [];
                 root.makePaths(paths);
 
-                for(var i = 0; i < paths.length; i++) {
-                    paths[i] = paths[i].reverse();
+                for (var i in paths) {
                     var reversedPathLabel = returnPath(paths[i]);
                     var ul = $("#scenarios").append("<li>"+reversedPathLabel+"</li>");
                     var li = $("li:contains('"+reversedPathLabel+"')");
@@ -142,7 +153,6 @@ $(function() {
     }   
 
     function isIncorrect(path) {
-        console.log(path);
         for(var i = 0; i < path.length; i++) 
             if(path[i].group == 'invalid') 
                return true;
@@ -150,49 +160,108 @@ $(function() {
     }
 
     function testScenario(nodes) {
+        var invalid = false;
+        var invalidNodes = {};
+        var activeAjaxs = 0;
         var requests = [];
+        var node = null;
         for(var i = 0; i < nodes.length; i++) {
             //wordpress app Uncaught TypeError: Cannot read property 'value' of undefined line 152
-
-            requests.push($.ajax({
+            node = nodes[i];
+            $.ajax({
                 url: "http://localhost/www/ba-simple-proxy.php?url="+nodes[i].value,
                 type: 'GET',
                 dataType: "text",
-            }));
+                beforeSend: function() {
+                    $("#glassPane").fadeIn("fast");
+                    activeAjaxs += 1;
+                },
+            }).done(function(res, textStatus, jqXHR) { 
+                res = res.replace(res.substring(0, res.indexOf("{")),"");
+                result = JSON.parse(res);
+                
+                activeAjaxs -= 1;
+                if(result.status.http_code == 404) {
+                    invalid = true;
+                    invalidNodes[node.id] = node;
+                }
+            }).fail(function(xmlhttp, status, error) { 
+                    activeAjaxs -= 1;
+                    alert("wystapil blad serwera proxy! sprawdz konsole");
+                    console.log(xmlhttp);
+                    console.log(status);
+                    console.log(error);
+                    $("#glassPane").fadeOut("fast");
+            }).always(function(xmlhttp, status, error) { 
+                if(activeAjaxs == 0) {
+                    if(invalid) {
+                        $("li:contains('"+returnPath(nodes)+"')").addClass("error").removeClass("noerror");
+
+                        for (var node in invalidNodes) {
+                            for(var node1 in tree.nodes._data) {
+                                var n = tree.nodes._data[node1];
+                                if(node == n.id) {
+                                    n.group = 'invalid';
+                                }
+                            }
+                        }
+                        tree.refresh();
+                    } else {
+                        $("li:contains('"+returnPath(nodes)+"')").addClass("noerror").removeClass("error");
+
+                        for (var i = 0; i < nodes.length; i++) {
+                            for(var node1 in tree.nodes._data) {
+                                var n = tree.nodes._data[node1];
+                                if(nodes[i].id == n.id) {
+                                    n.group = 'withoutForm';
+                                }
+                            }
+                        }
+                        tree.refresh();
+                    }
+                }
+            });
         }
-
-        $.when(requests)
-        .done(function(res, textStatus, jqXHR) {
-            var li = $("li:contains('"+returnPath(nodes)+"')");
-            var r = null;
-            for(var i = 0; i < res.length; i++) {
-                console.log(res);
-                /*r = res[i].responseText.replace(res[i].responseText.substring(0, res[i].responseText.indexOf("{")),"");
-                result = JSON.parse(r);
-
-                if(r.status == 200) {
-                    li.addClass("noerror");
-                } else {
-                    li.addClass("error"); 
-                }*/
-            }
-        })
-        .fail(function(xmlhttp, status, error) {
-            alert("wystapil blad serwera proxy! sprawdz konsole");
-            console.log(xmlhttp);
-            console.log(status);
-            console.log(error);
-            $("#glassPane").fadeOut("fast");
-        });
     }
 
     $(document).on('click', 'li', function() { 
         $("#glassPane").fadeIn("fast");
-        var decodedValue = $('<div />').html(this.innerHTML).text();
-        var array = [];
-        decodedValue.split(" > ").
-        testScenario(array);
+        var labelValue = $('<div />').html(this.innerHTML).text();
+        testScenario(paths[labelValue]);
         $("#glassPane").fadeOut("fast");
+    });
+
+    var oldStyles = {};
+    $(document).on('mouseover', 'li', function() { 
+        var labelValue = $('<div />').html(this.innerHTML).text();
+        var scenario = paths[labelValue];
+
+        for (var i = 0; i < scenario.length; i++) {
+            for(var node1 in tree.nodes._data) {
+                var n = tree.nodes._data[node1];
+                if(scenario[i].id == n.id) {
+                    oldStyles[n.id] = n.group;
+                    n.group = 'hover';
+                }
+            }
+        }
+        tree.refresh();
+    });
+
+    $(document).on('mouseout', 'li', function() { 
+        var labelValue = $('<div />').html(this.innerHTML).text();
+        var scenario = paths[labelValue];
+        
+        for(var node1 in tree.nodes._data) {
+            for(var style in oldStyles) {
+                var n = tree.nodes._data[node1];
+                if(n.id == style) {
+                    n.group = oldStyles[style];
+                }
+            }
+        }
+        tree.refresh();
+        oldStyles = {};
     });
 
     function createSpinner() {
