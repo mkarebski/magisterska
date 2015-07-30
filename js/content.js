@@ -8,21 +8,22 @@ $(function() {
 	var tree = null;
 	var scenarios = [];
 	var activeAjaxs = 0;
-	var nodesWithForms = [];
+	var nodesWithForms = {};
     var paths = {};
 
 	$("#setUrl").click(function() {
 		idProvider = 1;
         paths = {};
 
+        $("#forms").empty();
         $("#scenarios").empty();
 		tree = new Tree('treeScenario');
 
         // TODO BLEDY O NIEPOPRAWNOSCI DOKUMENTU XML
-        baseUrl = "localhost/www/aplikacja3";
-        //baseUrl = "localhost/www/aplikacja2";
+        //baseUrl = "localhost/www/aplikacja3";
+        // baseUrl = "localhost/www/aplikacja2";
 		//baseUrl = "localhost/www/wordpress";
-        //baseUrl = "localhost/www/portfolio";
+        baseUrl = "localhost/www/portfolio";
 		//baseUrl = $("input[name=url]").val();
 		root = new Link(0, baseUrl, null, 0, null);
 		maxDepthLevel = spinner.spinner("value");
@@ -46,7 +47,7 @@ $(function() {
 				result = JSON.parse(res);
                 
 				activeAjaxs -= 1;
-                if(result.status.http_code != 404) {
+                if(result.status.http_code == 200) { //bylo != 404
                     var htmlObject = null;
                     htmlObject = $("<span></span>").append(result.contents);
                     htmlObject.find("link").remove();
@@ -63,6 +64,7 @@ $(function() {
 
                             if(/mailto:/.test(elh)) continue;
                             if(/.(zip|exe|pdf)$/.test(elh)) continue;
+                            if(/#$/.test(elh)) continue;
                             elh = convertURL(elh, r.value);
                             
                             r1 = new Link(idProvider++, elh, r, r.level+1, null);
@@ -79,18 +81,11 @@ $(function() {
 
                             if(r1.loop != null) {
                                 tree.addEdge(r1.parent, r1.loop, param);
-                                //console.log("A");
-                                console.log(r1);
-
                                 continue;
-                                //console.log("B")
                             }
 
                             if(r.value != r1.value) {
                                 tree.addNode(r1);
-                                //if(r.parent != null && r.parent.value == r1.value) 
-                                    //tree.addEdge(r, r.parent, param);
-                                //else 
                                 tree.addEdge(r, r1, param);
                                 createChildrenNodes(r1);
                             } else {
@@ -122,8 +117,8 @@ $(function() {
 					var node = root.findNodeById(n.id);
 					if(node != undefined && node != null && node.form!= null && node.form.length > 0) {
 						n.group = 'withForm';
-                        node.group = 'withForm';
-						nodesWithForms.push(node);
+						node.group = 'withForm';
+                        nodesWithForms[n.id] = node;
 					}
 				}
 				tree.refresh();
@@ -143,9 +138,10 @@ $(function() {
 
 				tree.network.on('select', function(properties) {
 					$("#forms").empty();
-					for(var i = 0; i < nodesWithForms.length; i++) 
-						if (nodesWithForms[i].id == properties.nodes[0]) 
-							$("#forms").html(nodesWithForms[i].form);
+                    for(var node in nodesWithForms)
+						if (nodesWithForms[node].id == properties.nodes[0]) 
+							$("#forms").html(nodesWithForms[node].form);
+                        
 				});
 				$("#glassPane").fadeOut("fast");
 			}
